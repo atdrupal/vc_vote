@@ -1,0 +1,110 @@
+<?php
+/**
+ * Custom module to let user votes on items in a flag.
+ */
+
+/**
+ * Implements hook_form_FORM_ID_alter().
+ */
+function vc_vote_form_flag_form_alter(&$form, $form_state) {
+  $flag = &$form['#flag'];
+
+  $form['vc_vote'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Enable item voting'),
+    '#weight' => -1,
+    '#default_value' => variable_get("vc_vote_{$flag->name}", FALSE),
+  );
+
+  $form['#submit'][] = 'vc_vote_form_flag_form_alter_submit';
+}
+
+/**
+ * Submit handler for flag settings form.
+ */
+function vc_vote_form_flag_form_alter_submit($form, &$form_state) {
+  $flag = &$form['#flag'];
+
+  if ($form_state['values']['vc_vote']) {
+    variable_set("vc_vote_{$flag->name}", TRUE);
+  }
+  else {
+    variable_del("vc_vote_{$flag->name}");
+  }
+}
+
+/**
+ * Implements hook_flag_delete().
+ */
+function vc_vote_flag_delete($flag) {
+  variable_del("vc_vote_{$flag->name}");
+
+  $criteria['tag'] = "vc_vote_{$flag->name}";
+  $votes = votingapi_select_votes($criteria);
+  votingapi_delete_votes($votes);
+}
+
+/**
+ * Implement hook_menu().
+ *
+ * vc-vote/%flag/%vc_vote_entity/{vote|cancel}/{nojs|ajax}
+ */
+function vc_vote_menu() {
+  $items['vc-vote/%flag/%vc_vote_content/%/%'] = array(
+    'title' => 'Voting',
+    'access callback' => 'vc_vote_access',
+    'file' => 'vc_vote.pages.inc',
+    'page callback' => 'vc_vote_page_callback',
+    'page arguments' => array(1, 2, 3, 4),
+    'type' => MENU_NORMAL_ITEM,
+    'load arguments' => array(1),
+  );
+
+  return $items;
+}
+
+/**
+ * Access callback for.
+ *
+ * @return type
+ */
+function vc_vote_access() {
+  return !user_is_anonymous();
+}
+
+/**
+ * Load arguments
+ */
+function vc_vote_content_load($entity_id, $flag_name) {
+  if (!variable_get("vc_vote_{$flag_name}", FALSE)) return FALSE;
+  if (!$flag = flag_load($flag_name)) return FALSE;
+
+  $entity = entity_load($flag->content_type, array($entity_id));
+  if ($entity) {
+    return reset($entity);
+  }
+
+  return FALSE;
+}
+
+function vc_vote_votingapi_relationships() {
+  $default_relationships[] = array(
+    'description' => t('user'),
+    'entity_type' => 'user',
+    'base_table' => 'users',
+    'entity_id_column' => 'uid',
+    'pseudo_vote' => 'votingapi_vote',
+    'pseudo_cache' => 'votingapi_cache',
+  );
+  return $default_relationships;
+}
+
+/**
+ * Implementation of hook_views_api().
+ */
+function vc_vote_views_api() {
+  return array(
+    'api' => 3,
+    'path' => drupal_get_path('module', 'vc_vote') . '/includes',
+  );
+}

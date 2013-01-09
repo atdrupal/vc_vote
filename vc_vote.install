@@ -1,0 +1,14 @@
+<?php
+
+/**
+ * Implements hook_uninstall().
+ */
+function vc_vote_uninstall() {
+  global $conf;
+
+  foreach (array_keys($conf) as $k) {
+    if (strpos($k, 'vc_vote_')) {
+      variable_del($k);
+    }
+  }
+}

@@ -16,6 +16,13 @@ function vc_vote_form_flag_form_alter(&$form, $form_state) {
     '#default_value' => variable_get("vc_vote_{$flag->name}", FALSE),
   );
 
+  $form['vc_vote_unique'] = array(
+    '#type' => 'checkbox',
+    '#title' => t('Unique voting'),
+    '#weight' => -1,
+    '#default_value' => variable_get("vc_vote_unique_{$flag->name}", FALSE),
+  );
+
   $form['#submit'][] = 'vc_vote_form_flag_form_alter_submit';
 }
 
@@ -30,6 +37,13 @@ function vc_vote_form_flag_form_alter_submit($form, &$form_state) {
   }
   else {
     variable_del("vc_vote_{$flag->name}");
+  }
+
+  if ($form_state['values']['vc_vote_unique']) {
+    variable_set("vc_vote_unique_{$flag->name}", TRUE);
+  }
+  else {
+    variable_del("vc_vote_unique_{$flag->name}");
   }
 }
 
@@ -107,4 +121,34 @@ function vc_vote_views_api() {
     'api' => 3,
     'path' => drupal_get_path('module', 'vc_vote') . '/includes',
   );
+}
+
+function vc_vote_vote($flag, $content_id, $uid = NULL) {
+  $uid = is_null($uid) ? $GLOBALS['user']->uid : $uid;
+
+  if (variable_get("vc_vote_unique_{$flag->name}", FALSE)) {
+    vc_vote_cancel($flag, NULL, $uid);
+  }
+
+  $votes[] = array(
+    'entity_type' => $flag->content_type,
+    'entity_id' => $content_id,
+    'value_type' => 'points',
+    'value' => 1,
+    'uid' => $uid,
+    'tag' => "vc_vote_{$flag->name}",
+  );
+  votingapi_set_votes($votes);
+}
+
+function vc_vote_cancel($flag, $content_id = NULL, $uid = NULL) {
+  $uid = is_null($uid) ? $GLOBALS['user']->uid : $uid;
+
+  $criteria['tag'] = "vc_vote_{$flag->name}";
+  if (!is_null($content_id)) {
+    $criteria['entity_id'] = $content_id;
+  }
+  $criteria['uid'] = $uid;
+  $votes = votingapi_select_votes($criteria);
+  votingapi_delete_votes($votes);
 }

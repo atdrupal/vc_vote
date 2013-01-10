@@ -16,21 +16,11 @@ function vc_vote_page_callback($flag, $entity, $action) {
 
   switch ($action) {
     case 'vote':
-      $votes[] = array(
-        'entity_type' => $flag->content_type,
-        'entity_id' => $entity->{$info['entity keys']['id']},
-        'value_type' => 'points',
-        'value' => 1,
-        'tag' => "vc_vote_{$flag->name}",
-      );
-      votingapi_set_votes($votes);
+      vc_vote_vote($flag, $entity->{$info['entity keys']['id']});
       break;
 
     case 'cancel':
-      $criteria['tag'] = "vc_vote_{$flag->name}";
-      $criteria['uid'] = $user->uid;
-      $votes = votingapi_select_votes($criteria);
-      votingapi_delete_votes($votes);
+      vc_vote_cancel($flag, $entity->{$info['entity keys']['id']}, $user->uid);
       break;
 
     default:
@@ -46,7 +36,6 @@ function vc_vote_page_callback($flag, $entity, $action) {
     $flag->flag_message = '';
     $flag->unflag_message = '';
     $flag->link_type = 'toggle';
-    #kpr($flag); exit;
 
   if ($js) {
     drupal_add_http_header('Content-Type', 'text/javascript; charset=utf-8');
@@ -63,6 +52,10 @@ function vc_vote_page_callback($flag, $entity, $action) {
     drupal_exit();
   }
   else {
+    if (isset($_GET['destination'])) {
+      drupal_goto($_GET['destination']);
+    }
+
     $path = $info['uri callback']($entity);
     drupal_goto($path['path']);
   }

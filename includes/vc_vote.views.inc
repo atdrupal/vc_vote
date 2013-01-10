@@ -17,25 +17,23 @@ function vc_vote_views_data_alter(&$data) {
   foreach (array_keys($flags) as $flag_name) {
     if (!variable_get("vc_vote_{$flag_name}", FALSE)) continue;
     $table = NULL;
-
     switch ($flags[$flag_name]->content_type) {
       case 'node':
-        $table = &$data['node'];
+        $table = 'node';
         break;
       case 'user':
-        $table = &$data['users'];
+        $table = 'users';
         break;
     }
 
     if ($table) {
-      $table['vc_votes_vote'] = $table['votingapi_vote'];
-      $table['vc_votes_vote']['relationship']['title'] .= " › {$flags[$flag_name]->title}";
-      $table['vc_votes_vote']['relationship']['extra'][] = array('field' => 'tag', 'value' => "vc_vote_{$flag_name}");
+      $data[$table]['vc_votes_vote'] = $data[$table]['votingapi_vote'];
+      $data[$table]['vc_votes_vote']['relationship']['title'] .= " › {$flags[$flag_name]->title}";
+      $data[$table]['vc_votes_vote']['relationship']['extra'][] = array('field' => 'tag', 'value' => "vc_vote_{$flag_name}");
 
-      $table['vc_votes_cache'] = $table['votingapi_cache'];
-      $table['vc_votes_cache']['relationship']['title'] .= " › {$flags[$flag_name]->title}";
-      $table['vc_votes_cache']['relationship']['extra'][] = array('field' => 'tag', 'value' => "vc_vote_{$flag_name}");
-      # $table['vc_votes_cache']['handler'] = 'vc_vote_views_handler_relationship';
+      $data[$table]['vc_votes_cache'] = $data[$table]['votingapi_cache'];
+      $data[$table]['vc_votes_cache']['relationship']['title'] .= " › {$flags[$flag_name]->title}";
+      $data[$table]['vc_votes_cache']['relationship']['extra'][] = array('field' => 'tag', 'value' => "vc_vote_{$flag_name}");
     }
   }
 }
